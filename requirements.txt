@@ -1,0 +1,16 @@
+# Core dependencies (keep this file ASCII-only: pip on Windows decodes it as GBK)
+requests>=2.31.0
+PyYAML>=6.0.1
+python-dotenv>=1.0.0
+rich>=13.7.0
+tzdata>=2024.1
+
+# Optional: read-only web dashboard
+fastapi>=0.110.0
+uvicorn>=0.29.0
+
+# Optional: accurate trading calendar and backup data source
+# akshare>=1.12.0
+
+# Live trading uses xtquant, which ships with the broker's miniQMT client.
+# Add <miniQMT install>/bin.x64/Lib/site-packages to PYTHONPATH instead of pip install.

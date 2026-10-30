@@ -1,0 +1,90 @@
+# ============================================================
+#  AI 量化交易系统配置
+#  密钥请放在 .env（DEEPSEEK_API_KEY），不要写在这里
+# ============================================================
+
+# ---------- 运行模式 ----------
+mode: paper                 # paper = 模拟盘 | live = 实盘
+live_trading: false         # 实盘总开关。必须为 true 且启动时确认风险才会真下单
+
+# ---------- 执行方式 ----------
+# auto   = 程序自动下单（需要券商程序化交易接口，如 QMT）
+# manual = 只生成委托建议，你在券商客户端（同花顺/君弘等）手动下单，成交后回填
+#
+# 没有 QMT 权限时用 manual：实时风控和 AI 决策照常跑，只是最后一步由你点。
+# 这时 broker 保持 paper，仅用于本地记账，不会碰任何真实账户。
+execution_mode: auto
+
+# ---------- 自选池 ----------
+universe:
+  - "600519"   # 贵州茅台
+  - "600036"   # 招商银行
+  - "000858"   # 五粮液
+  - "300750"   # 宁德时代
+  - "601318"   # 中国平安
+  - "002594"   # 比亚迪
+  - "600900"   # 长江电力
+  - "601899"   # 紫金矿业
+  - "300059"   # 东方财富
+  - "000001"   # 平安银行
+
+# ---------- 策略 ----------
+strategy:
+  poll_interval_seconds: 30       # 主循环间隔
+  bar_refresh_seconds: 300        # 日线 K 线缓存有效期
+  min_confidence: 0.66            # AI 决策最低置信度
+  min_technical_score: 0.60       # 技术面最低评分（先过滤，过了才花 token 问 AI）
+  max_candidates_per_cycle: 3     # 每轮最多让 AI 分析几只
+  ai_min_interval_minutes: 30     # 同一标的两次 AI 分析的最小间隔
+  ai_price_trigger_pct: 0.02      # 但若价格变动超过该幅度则允许提前重新分析
+  no_new_position_after: "14:45"  # 该时刻后不再开新仓
+  allow_ai_sell: true             # 是否允许 AI 主动发出卖出信号
+
+# ---------- 风控（硬约束，AI 无法覆盖） ----------
+risk:
+  max_position_pct: 0.20          # 单票市值占总资产上限
+  max_total_exposure_pct: 0.80    # 总持仓上限
+  max_daily_loss_pct: 0.03        # 当日亏损超 3% 停止开仓
+  max_drawdown_pct: 0.10          # 相对峰值回撤超 10% 全部停止
+  max_daily_trades: 20            # 单日成交笔数上限
+  min_order_amount: 5000          # 单笔最小金额
+  stop_loss_pct: 0.07             # 硬止损
+  take_profit_pct: 0.15           # 硬止盈
+  max_holding_days: 0             # 0 = 不限制
+  forbid_st: true                 # 禁止 ST / *ST
+  forbid_limit_up_buy: true       # 涨停附近不追买
+  limit_up_buffer_pct: 0.002      # 距涨停价小于 0.2% 视为涨停
+  forbid_limit_down_sell: true    # 跌停不卖
+
+# ---------- AI ----------
+ai:
+  provider: deepseek
+  model: deepseek-chat            # 或 deepseek-reasoner（更慢更贵）
+  base_url: https://api.deepseek.com
+  temperature: 0.2
+  max_tokens: 900
+  timeout_seconds: 60
+  max_retries: 3
+  daily_token_budget: 400000      # 每日 token 上限，超了当日不再调用
+
+# ---------- 券商 ----------
+broker:
+  name: paper                     # paper | qmt
+  paper:
+    initial_cash: 1000000
+    commission_rate: 0.00025
+    min_commission: 5.0
+    stamp_duty_rate: 0.001        # 仅卖出收取
+    transfer_fee_rate: 0.00001
+    slippage_bps: 5               # 模拟滑点（基点）
+  qmt:
+    account_id: ""                # 资金账号，可留空由 .env 的 QMT_ACCOUNT_ID 提供
+    account_type: STOCK           # STOCK = 普通股票账户
+    mini_qmt_path: "D:/国金证券QMT交易端/userdata_mini"   # 必须指向 userdata_mini 目录
+    session_id: 20260101
+
+# ---------- 存储 ----------
+storage:
+  db_path: data/trader.db
+  log_dir: logs
+  paper_state_path: data/paper_account.json
